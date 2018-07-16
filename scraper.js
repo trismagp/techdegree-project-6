@@ -9,7 +9,6 @@ const WEBSITE_URL       = "http://www.shirts4mike.com",
 
 const shirtsData        = [];
 
-
 // Print error message in console and log file
 function printError(error){
 
@@ -18,36 +17,11 @@ function printError(error){
   console.log(__dirname + `\\${LOG_FILE_NAME}`);
 
   var now = new Date();
-  var timestamp = dateFormat(now, "ddd mmm dd yyyy hh:MM:ss Z");
+  var timestamp = dateFormat(now, "ddd mmm dd yyyy hh:MM:ss TT Z");
   fs.appendFileSync(LOG_FILE_NAME,  `[${timestamp}] ${error.message}\n`);
 }
 
-
-// Check connection to website and launch scraper if connection is ok
-function checkConnectionLaunchScraper(){
-  try{
-    var request = http.get(ENTRY_POINT_URL, response =>{
-      if(response.statusCode === 200){;
-        scrapeShirtUrls();        // launch scraper
-      }else{
-        const error = new Error(`Error connecting to ${ENTRY_POINT_URL} ${response.statusMessage} (${response.statusCode})`);
-        printError(error);
-      }
-    });
-
-    request.on('error',error => {
-      const errorMessage = new Error(`Error connecting to hostname: ${error.host}. Please check hostname or connection`);
-      printError(errorMessage)
-    });
-
-  }catch(error){
-    printError(error)
-  }
-}
-
-
-// list shirt details page urls in ENTRY_POINT_URL
-// and launch scrapeShirtDetails
+// list shirt details page urls in ENTRY_POINT_URL and launch scrapeShirtDetails
 function scrapeShirtUrls(){
   var request = scrapeIt(ENTRY_POINT_URL, {
     shirtsHrefs: {
@@ -65,8 +39,12 @@ function scrapeShirtUrls(){
       var hrefs = data.shirtsHrefs;
       scrapeShirtDetails(hrefs);
     }else{
-      console.log(response);
+      const errorMessage = new Error(`Error connecting to ${ENTRY_POINT_URL} ${response.statusMessage} (${response.statusCode})`);
+      printError(errorMessage);
     }
+  }).catch((error) => {
+    const errorMessage = new Error(`Error connecting to hostname: ${error.host}. Please check hostname or connection`);
+    printError(errorMessage);
   })
 }
 
@@ -92,23 +70,33 @@ function scrapeShirtDetails(hrefs){
         }
       }
     }).then(({ data, response }) => {
-      var shirtUrl = WEBSITE_URL + hrefs[shirtsData.length].href;
-      var shirt =  new Shirt(data.shirtData[0],shirtUrl);       // create shirt object with scraped data
-      shirtsData.push(shirt);                                   // push shirt object in "shirtsData" global array
 
-      if(hrefs.length===shirtsData.length){                     // write data in csv when all shirt objects are in "shirtsData"
-        writeCsv(shirtsData);
+      var shirtUrl = response.responseUrl;
+      if(response.statusCode === 200){
+        var shirt =  new Shirt(data.shirtData[0],shirtUrl);       // create shirt object with scraped data
+        shirtsData.push(shirt);                                   // push shirt object in "shirtsData" global array
+
+        if(hrefs.length===shirtsData.length){                     // write data in csv when all shirt objects are in "shirtsData"
+          writeCsv(shirtsData);
+        }
+      }else{
+        const error = new Error(`Error connecting to ${shirtUrl} ${response.statusMessage} (${response.statusCode})`);
+        printError(errorMessage);
       }
+    }).catch((error) => {
+      const errorMessage = new Error(`Error connecting to hostname: ${error.host}. Please check hostname or connection`);
+      printError(errorMessage);
     });
   }
 }
 
 // Shirt object
 function Shirt(shirtData,shirtUrl){
-  var title = shirtData.title;
+  var { title, price, imageURL } = shirtData;
+  // var title = shirtData.title;
   this.title = title.substring(title.indexOf(" ") + 1);
-  this.price = shirtData.price;
-  this.imageURL = shirtData.imageURL;
+  this.price = price;
+  this.imageURL = WEBSITE_URL + "/" + imageURL;
   this.url = shirtUrl;
   this.time = dateFormat(Date.now(), "hh:MM:ss:l");
 }
@@ -138,8 +126,6 @@ function writeCsv(shirtsData){
 }
 
 
-
-
 // create "data" directory if doesn't exist
 var dir = './data';
 if (!fs.existsSync(dir)) {
@@ -147,4 +133,4 @@ if (!fs.existsSync(dir)) {
 }
 
 // launch scraping process
-checkConnectionLaunchScraper();
+scrapeShirtUrls();
