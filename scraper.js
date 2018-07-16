@@ -43,7 +43,7 @@ function scrapeShirtUrls(){
       printError(errorMessage);
     }
   }).catch((error) => {
-    const errorMessage = new Error(`Error connecting to hostname: ${error.host}. Please check hostname or connection`);
+    const errorMessage = new Error(`Error with hostname: ${error.host} or connection`);
     printError(errorMessage);
   })
 }
@@ -80,11 +80,11 @@ function scrapeShirtDetails(hrefs){
           writeCsv(shirtsData);
         }
       }else{
-        const error = new Error(`Error connecting to ${shirtUrl} ${response.statusMessage} (${response.statusCode})`);
+        const errorMessage = new Error(`Error connecting to ${shirtUrl} ${response.statusMessage} (${response.statusCode})`);
         printError(errorMessage);
       }
     }).catch((error) => {
-      const errorMessage = new Error(`Error connecting to hostname: ${error.host}. Please check hostname or connection`);
+      const errorMessage = new Error(`Error with hostname: ${error.host} or connection`);
       printError(errorMessage);
     });
   }
@@ -93,7 +93,6 @@ function scrapeShirtDetails(hrefs){
 // Shirt object
 function Shirt(shirtData,shirtUrl){
   var { title, price, imageURL } = shirtData;
-  // var title = shirtData.title;
   this.title = title.substring(title.indexOf(" ") + 1);
   this.price = price;
   this.imageURL = WEBSITE_URL + "/" + imageURL;
