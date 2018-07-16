@@ -1,7 +1,7 @@
 const scrapeIt          = require("scrape-it"),
       fs                = require("fs"),
       dateFormat        = require("dateformat"),
-      http              = require("http");
+      createCsvWriter   = require('csv-writer').createObjectCsvWriter;
 
 const WEBSITE_URL       = "http://www.shirts4mike.com",
       ENTRY_POINT_URL   = "http://www.shirts4mike.com/shirts.php",
@@ -25,16 +25,15 @@ function printError(error){
 function scrapeShirtUrls(){
   var request = scrapeIt(ENTRY_POINT_URL, {
     shirtsHrefs: {
-        listItem: ".products li",
-        data: {
-          href: {
-              selector: "a",
-              attr: "href"
-          }
+      listItem: ".products li",
+      data: {
+        href: {
+          selector: "a",
+          attr: "href"
         }
       }
     }
-  ).then(({ data, response }) => {
+  }).then(({ data, response }) => {
     if (response.statusCode === 200) {
       var hrefs = data.shirtsHrefs;
       scrapeShirtDetails(hrefs);
@@ -55,17 +54,17 @@ function scrapeShirtDetails(hrefs){
     var url = WEBSITE_URL+"/"+hrefs[i].href;
     scrapeIt(url,{                                             // scrape shirt details
       shirtData: {
-          listItem: "#content .wrapper",
-          data: {
-            title: {
-              selector: ".shirt-details h1"
-            },
-            price: {
-              selector: ".shirt-details .price"
-            },
-            imageURL: {
-              selector: ".shirt-picture img",
-              attr: "src"
+        listItem: "#content .wrapper",
+        data: {
+          title: {
+            selector: ".shirt-details h1"
+          },
+          price: {
+            selector: ".shirt-details .price"
+          },
+          imageURL: {
+            selector: ".shirt-picture img",
+            attr: "src"
           }
         }
       }
@@ -93,7 +92,7 @@ function scrapeShirtDetails(hrefs){
 // Shirt object
 function Shirt(shirtData,shirtUrl){
   var { title, price, imageURL } = shirtData;
-  this.title = title.substring(title.indexOf(" ") + 1);
+  this.title = title.substring(title.indexOf(" ") + 1); // removing price from shirt title
   this.price = price;
   this.imageURL = WEBSITE_URL + "/" + imageURL;
   this.url = shirtUrl;
@@ -102,19 +101,17 @@ function Shirt(shirtData,shirtUrl){
 
 // helper function for writing all shirts data in csv file
 function writeCsv(shirtsData){
-  const createCsvWriter = require('csv-writer').createObjectCsvWriter;
   const pathCsvFile = `data\\${dateFormat(Date.now(), "yyyy-mm-d")}.csv`;
-
   // create csv file
   const csvWriter = createCsvWriter({
-      path: pathCsvFile,
-      header: [
-          {id: 'title', title: 'Title'},
-          {id: 'price', title: 'Price'},
-          {id: 'imageURL', title: 'ImageURL'},
-          {id: 'url', title: 'URL'},
-          {id: 'time', title: 'Time'},
-      ]
+    path: pathCsvFile,
+    header: [
+      {id: 'title', title: 'Title'},
+      {id: 'price', title: 'Price'},
+      {id: 'imageURL', title: 'ImageURL'},
+      {id: 'url', title: 'URL'},
+      {id: 'time', title: 'Time'},
+    ]
   });
 
   // write to csv file
